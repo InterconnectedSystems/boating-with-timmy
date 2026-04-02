@@ -8,7 +8,7 @@ source.include_exts = py
 
 version = 1.0
 
-requirements = python3==3.10.14,pygame2
+requirements = python3,pygame2
 
 orientation = landscape
 fullscreen = 1

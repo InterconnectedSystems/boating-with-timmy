@@ -1,0 +1,79 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            openjdk-17-jdk \
+            build-essential git zip unzip \
+            autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo5 cmake libffi-dev libssl-dev \
+            libltdl-dev
+
+      - name: Install Python build tools
+        run: pip install --upgrade buildozer cython virtualenv
+
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-
+
+      - name: Build APK
+        run: yes | buildozer android debug 2>&1 | tee build.log
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: boating-with-timmy-apk
+          path: bin/*.apk
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: Boating With Timmy v1.0.0
+          body: |
+            ## Boating With Timmy — Android APK
+
+            A 16-bit retro boating game where Captain Timmy constantly
+            sabotages your voyage to Treasure Island.
+
+            ### Install
+            Download the `.apk` below, transfer to your Android device,
+            enable "Install from unknown sources", and run it.
+
+            ### Controls (on-screen touch buttons)
+            - **◄ ▲ ►** — Steer / Accelerate
+            - **BAIL** — Bail water out of boat
+            - **FIX** — Repair boat (costs fuel)
+            - **YELL** — Yell at Timmy (he laughs)
+
+            ### Requirements
+            Android 7.0+ (API 24), landscape orientation.
+          files: bin/*.apk
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

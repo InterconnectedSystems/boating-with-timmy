@@ -29,7 +29,9 @@ jobs:
             libltdl-dev
 
       - name: Install Python build tools
-        run: pip install --upgrade buildozer cython virtualenv
+        # cython must be <3.0 — pyjnius uses the deprecated IF statement
+        # which Cython 3.x treats as an error during the SDL2 bootstrap build.
+        run: pip install buildozer "cython==0.29.37" virtualenv
 
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
@@ -42,6 +44,10 @@ jobs:
         run: yes | buildozer android debug 2>&1 | tee build.log
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          # Clear runner's pre-installed NDK/SDK so buildozer manages its own
+          ANDROID_NDK_ROOT: ""
+          ANDROID_SDK_ROOT: ""
+          ANDROID_HOME: ""
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
